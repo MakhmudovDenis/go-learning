@@ -1,1 +1,151 @@
+1. package main
+
+import "fmt"
+
+type account struct {
+	value int
+}
+
+func main() {
+	s1 := make([]account, 0, 2)
+	s1 = append(s1, account{}) //слайс с len=1, s1[0] = {value: 0}
+	s2 := append(s1, account{}) //s2 - другой слайс, ссылающийся на тот же массив, что и s1. len=2, s2=[{0}, {0}]
+	acc := &s2[0] //указатель на первый элемент массива обоих слайсов
+	acc.value = 100
+	fmt.Println(s1, s2) //[{100}], [{100}, {0}]
+	s1 = append(s1, account{}) //теперь s1.len = 2
+	acc.value += 100
+	fmt.Println(s1, s2) // [{200}, {0}], [{200}, {0}]
+}
+
+2. package main
+
+import "fmt"
+
+func main() {
+	slice := make([]string, 0, 5)
+	slice = append(slice, "0", "1", "2", "3")
+	fmt.Println(slice, len(slice), cap(slice)) //[0,1,2,3] 4 5
+	addToSlice1(slice)
+	fmt.Println(slice, len(slice), cap(slice)) //[0,1,2,one] 4 5
+	addToSlice2(slice)
+	fmt.Println(slice, len(slice), cap(slice)) //[0,1,2,one] 4 5. Массив: [0,1,2,one,two]
+}
+
+func addToSlice1(slice []string) {
+	slice = append(slice[1:3], "one")// slice[1:3] создает новый слайс с тем же массивом, и, делая append(slice[1:3], "one") мы записываем это в оригинальный массив
+}
+
+func addToSlice2(slice []string) {
+	slice = append(slice, "two") //добавляем two в конец массива. однако функция оперирует над копией слайса, поэтому append не обновляет len оригинального слайса
+}
+
+3.package main
+
+import "fmt"
+
+func main() {
+	a1 := make([]int, 0, 10)
+	a1 = append(a1, []int{1, 2, 3, 4, 5}...) // [1,2,3,4,5], len=5, cap=10
+	a2 := append(a1, 6) // новый срез с тем же массивом, что и a1: [1,2,3,4,5] + 6
+	a3 := append(a1, 7) // новый срез с тем же массивом, что и a1: [1,2,3,4,5] + 7, перетирает 6 в массиве
+	fmt.Println(a1, a2, a3) //[1,2,3,4,5], [1,2,3,4,5,7], [1,2,3,4,5,7]
+}
+
+4.package main
+
+import "fmt"
+
+func main() {
+	a := []int{1, 2, 3}
+	b := a[:2] // [1,2], len=2, cap=3
+	b = append(b, 4) //массив меняется на [1,2,4] 
+	fmt.Println(b) //[1,2,4]
+	fmt.Println(a) //[1,2,4]
+}
+
+5.package main
+
+import "fmt"
+
+func main() {
+	arr := []int{1, 2, 3}
+	src := arr[:1] // [1], len=1, cap=3
+	foo(src)
+	fmt.Println(src) // [1]
+	fmt.Println(arr) // [1,5,3]
+}
+
+func foo(src []int) {
+	src = append(src, 5) //зписывает 5 в массив первым элементом (нулевой остается 1)
+}
+
+6.package main
+
+import "fmt"
+
+func main() {
+	arr := [5]int{1, 2, 3, 4, 5}
+	bar := arr[1:3] // arr - массив слайса bar, cap(bar) = len(arr[1:]) => cap(bar) = 4
+	bar = append(bar, 10, 11, 12, 13) // append 4х элементов не влезает в arr, алллоцируется новый массив, arr не меняется
+	fmt.Println(arr, bar) //[1,2,3,4,5], [2,3,10,11,12,13]
+}
+
+7. package main
+
+import "fmt"
+
+func main() {
+	a := []string{"a", "b", "c"}
+	b := a[1:2]
+	fmt.Println(b, cap(b), len(b)) //["b"] cap=2 len=1
+	b[0] = "q"
+	fmt.Println(a) //[a, q, c]
+}
+
+8. package main
+
+import (
+	"fmt"
+)
+
+func main() {
+	nums := make([]int, 1, 3)
+	fmt.Println(nums) //[0], len=1, cap=3
+	appendSlice(nums, 1)
+	fmt.Println(nums) //[0], len=1, cap=3, arr=[0,1]
+	copySlice(nums, []int{2, 3})
+	fmt.Println(nums) // [2]
+	mutateSlice(nums, 1, 4)
+	fmt.Println(nums) //обращение к 1-ому элементу в слайсе где есть только нулевой вызывает панику
+}
+
+func appendSlice(sl []int, val int) {
+	sl = append(sl, val) //append добавляет val в тот же массив, но не обновляет len у оригинального слайса
+}
+
+func copySlice(sl, cp []int) {
+	copy(sl, cp) //copy копирует из cp в sl столько элементов, сколько помещается по длине. в данном случае только 1
+}
+
+func mutateSlice(sl []int, idx, val int) {
+	sl[idx] = val
+}
+
+9. package main
+
+import (
+	"fmt"
+)
+
+func main() {
+	slice := make([]int, 3, 4) // [0,0,0], len=3, cap=4
+	appendingSlice(slice[:1]) //передаём слайс [0], len=1, cap=4
+	fmt.Println(slice) //[0,1,0]
+}
+
+func appendingSlice(slice []int) {
+	slice = append(slice, 1) // добавляет 1 к [0], в массиве получается [0, 1]
+}
+
 
