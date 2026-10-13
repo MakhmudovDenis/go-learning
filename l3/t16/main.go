@@ -2,35 +2,37 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"sync"
+	"time"
 )
 
-// Интерфейс для всех плагинов
+var errPluginNotExist = errors.New("plugin does not exist")
+
 type Plugin interface {
 	Execute() string
 }
 
-// Управляет инициализацией и доступом к плагинам
 type PluginManager struct {
 	plugins map[string]*pluginEntry
 	mu      sync.RWMutex
 }
 
 type pluginEntry struct {
-	// Добавить необходимые поля для однократной инициализации
+	once   sync.Once
+	plugin Plugin
 	initFn func() (Plugin, error)
+	err    error
 }
 
-// NewPluginManager создает новый менеджер плагинов
 func NewPluginManager() *PluginManager {
 	return &PluginManager{
 		plugins: make(map[string]*pluginEntry),
 	}
 }
 
-// RegisterPlugin регистрирует новый плагин
 func (pm *PluginManager) RegisterPlugin(name string, initFn func() (Plugin, error)) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
@@ -39,17 +41,33 @@ func (pm *PluginManager) RegisterPlugin(name string, initFn func() (Plugin, erro
 	}
 }
 
-// GetPlugin возвращает инициализированный плагин
 func (pm *PluginManager) GetPlugin(name string) (Plugin, error) {
-	// Реализовать:
-	// 1. Проверку существования плагина
-	// 2. Потокобезопасную однократную инициализацию
-	// 3. Обработку и кэширование ошибок
-	// 4. Возврат кэшированного результата
-	return nil, fmt.Errorf("not implemented")
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	entry, exists := pm.plugins[name]
+	if !exists {
+		return nil, errPluginNotExist
+	}
+
+	if entry.err != nil {
+		fmt.Printf("cached error for %s:%v\n", name, entry.err)
+		return nil, entry.err
+	}
+
+	entry.once.Do(func() {
+		plugin, err := entry.initFn()
+		if err != nil {
+			entry.err = err
+			return
+		}
+
+		entry.plugin = plugin
+	})
+
+	return entry.plugin, entry.err
 }
 
-// DemoPlugin реализация плагина
 type DemoPlugin struct{}
 
 func (p *DemoPlugin) Execute() string {
@@ -57,8 +75,7 @@ func (p *DemoPlugin) Execute() string {
 }
 
 func initDemo() (Plugin, error) {
-	// Имитация длительной инициализации
-	// time.Sleep(500 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 	return &DemoPlugin{}, nil
 }
 

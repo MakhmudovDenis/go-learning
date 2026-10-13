@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -27,7 +28,8 @@ type Item struct {
 	Value int
 }
 
-func processItem(item *Item) {
+func processItem(wg *sync.WaitGroup, item *Item) {
+	defer wg.Done()
 	time.Sleep(time.Second)
 	if item.Value > 10 {
 		fmt.Printf("ERROR: item %d can't be more than 10\n", item.Value)
@@ -40,23 +42,27 @@ func processItem(item *Item) {
 	}
 }
 
-func DoBusinessLogic() error {
+func DoBusinessLogic(wg *sync.WaitGroup) error {
 	items, err := Logic.FetchItems(context.Background())
 	if err != nil {
 		return err
 	}
+	wg.Add(len(items))
 
 	for _, item := range items {
-		go processItem(item)
+		go processItem(wg, item)
 	}
 
 	return nil
 }
 
 func main() {
-	err := DoBusinessLogic()
+	var wg sync.WaitGroup
+	err := DoBusinessLogic(&wg)
 	if err != nil {
 		fmt.Println("Error:", err)
 	}
+
+	wg.Wait()
 	fmt.Println("All items processed")
 }
