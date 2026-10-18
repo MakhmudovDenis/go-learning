@@ -5,9 +5,16 @@ import (
 )  
   
 func main() {  
-    fmt.Println("start")  
+    fmt.Println("start") 
     for i := 1; i < 4; i++ {  
-       defer fmt.Println(i)  
+       defer fmt.Println(i) // вызовы defer кладутся в стек, из которого потом вытаскиваются в обратном порядке 
     }  
     fmt.Println("end")  
 }
+
+Вывод:
+start
+end
+3
+2
+1

@@ -12,16 +12,16 @@ func (m *MyError) Error() string {
     return m.data  
 }  
 func foo(i int) error {  
-    var err *MyError  
-    if i > 5 {  
+    var err *MyError // nil ptr
+    if i > 5 {  // i = 4 => не выполняется
        err = &MyError{data: "i>5"}  
-    }  
-    return err  
+    }
+    return err // интерфейс с типом *MyError и значением nil != nil
 }  
-func main() {  
+func main() {
     err := foo(4)  
     if err != nil {  
-       fmt.Println("oops")  
+       fmt.Println("oops") //будет выведено
     } else {  
        fmt.Println("ok")  
     }  

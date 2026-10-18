@@ -4,9 +4,11 @@ import "fmt"
   
 func main() {  
     value := 123  
-    defer fmt.Println(value)  
+    defer fmt.Println(value)  // аргументы deferred функций определяются в момент вызова defer
     changeValue(&value)  
 }  
 func changeValue(value *int) {  
     *value = 456  
 }
+
+Вывод - 123

@@ -1,0 +1,109 @@
+1. package main
+
+import (
+	"fmt"
+)
+
+func main() {
+	var numbers []*int
+
+    values := []int{10, 20, 30, 40}
+    for i := range values {
+        numbers = append(numbers, &values[i])
+    }
+
+    for _, number := range numbers {
+		fmt.Println("d", *number)
+	}
+}
+
+
+//NOTE: не нашел, где нормально/удобно запускать 1.21 (я запускаюсь на 1.26), но, насколько понял, такой рефакторинг решает проблему
+
+2. package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+func chengeSlice(arr []string) {
+	arr[0] = "Goodbye"
+}
+
+func appendSomeData(arr []string) []string {
+	// arr = append(arr, "!") //оригинальная строчка
+	return append(arr, "!") // нужно вернуть результат append
+}
+
+func main() {
+	someSlice := []string{"Hello", "World"}
+	chengeSlice(someSlice)
+	//appendSomeData(someSlice) // оригинальная строчка: someSlice не видит append и у него не обновляется len
+    someSlice = appendSomeData(someSlice) 
+	fmt.Println(strings.Join(someSlice, ""))
+}
+
+3.package main
+
+import "fmt"
+
+func test(testSlice []string) []string {
+	return append(testSlice, "Пока")
+}
+
+func main() {
+	testSlice := make([]string, 0, 3)
+	testSlice = append(testSlice, "Привет")
+	testSlice = append(testSlice, "Привет")
+	//test(testSlice) // оригинальная строчка: testSlice не видит append в test
+	testSlice = test(testSlice)
+	fmt.Println(testSlice) // [Привет Привет] => [Привет Привет Пока]
+}
+
+4. package main
+
+import "fmt"
+
+func main() {
+	first := []int{10, 20, 30, 40}
+	second := make([]*int, len(first))
+	for i, v := range first {
+		//second[i] = &v//оригинальная строчка
+        second[i] = &first[i]
+	}
+	fmt.Println(*second[0], *second[1])
+}
+
+см. строка 21
+
+5.package main
+
+import (
+	"fmt"
+)
+
+func main() {
+	slice := make([]string, 3, 4) // ["","",""], len=3, cap=4
+	fmt.Println(slice)
+
+	//appendSlice(slice)// оригинальная строка - slice в main не видит изменение длины от append в appendSlice
+    slice = appendSlice(slice)
+	fmt.Println(slice) // ["","","","privet"], len=4, cap=4
+
+	mutareSlice(slice)
+	//fmt.Println(slice) //["vasya", "", "", "privet"], оригинальная строка до изменения mutareSlice
+    fmt.Println(slice[2:]) //["vasya", "privet"]
+}
+
+func appendSlice(slice []string) []string {
+	//slice = append(slice, "privet") //оригинальная строчка. Теперь возвращаем результат append
+    return append(slice, "privet")
+}
+func mutareSlice(slice []string) {
+	//slice[0] = "vasya" // оригинальная строчка
+	slice[2] = "vasya"
+}
+
+без модификации строк 96 и 104 получается вывод на 95 строке - возможно этого было достаточно
+:wq

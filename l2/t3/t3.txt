@@ -25,10 +25,10 @@ func main() {
 
 func case1() {
     helperWithDefer := func(isError bool) error {
-        var retVal error
+        var retVal error // = nil как zer-value
 
         defer func() {
-            retVal = errors.New("Extra error")
+            retVal = errors.New("Extra error") // retVal - локальная переменная, её изменение deferred функцией не повлияет на возвращаемое значение
         }()
 
         if isError {
@@ -39,27 +39,27 @@ func case1() {
     }
 
     helperWithoutDefer := func(isError bool) error {
-        var retVal error
+        var retVal error // = nil как zero-value
 
         if isError {
             retVal = errors.New("Default error")
         }
 
-        return retVal
+        return retVal"
     }
 
     fmt.Println("\twithout:")
-    fmt.Println(helperWithoutDefer(false))
-    fmt.Println(helperWithoutDefer(true))
+    fmt.Println(helperWithoutDefer(false)) // nil
+    fmt.Println(helperWithoutDefer(true)) // default error
     fmt.Println("\twith:")
-    fmt.Println(helperWithDefer(false))
-    fmt.Println(helperWithDefer(true))
+    fmt.Println(helperWithDefer(false)) //nil
+    fmt.Println(helperWithDefer(true)) // Default error
 }
 
 func case2() {
-    helperWithDefer := func(isError bool) (retVal error) {
+    helperWithDefer := func(isError bool) (retVal error) { // retVal = nil
         defer func() {
-            retVal = errors.New("Extra error")
+            retVal = errors.New("Extra error") // named return изменяем deferred функциями
         }()
 
         if isError {
@@ -69,7 +69,7 @@ func case2() {
         return
     }
 
-    helperWithoutDefer := func(isError bool) (retVal error) {
+    helperWithoutDefer := func(isError bool) (retVal error) { //retval = nil
         if isError {
             retVal = errors.New("Default error")
         }
@@ -78,14 +78,15 @@ func case2() {
     }
 
     fmt.Println("\twithout:")
-    fmt.Println(helperWithoutDefer(false))
-    fmt.Println(helperWithoutDefer(true))
+    fmt.Println(helperWithoutDefer(false)) // nil
+    fmt.Println(helperWithoutDefer(true)) // Default error
     fmt.Println("\twith:")
-    fmt.Println(helperWithDefer(false))
-    fmt.Println(helperWithDefer(true))
+    fmt.Println(helperWithDefer(false)) // Extra error
+    fmt.Println(helperWithDefer(true)) // Extra error
 }
 
 func case3() {
+    // deferred функции вызываются в порядке LIFO, таким образом функция возвращает First Error независимо от аргумента
     helperWithDefer := func(isError bool) (retVal error) {
         defer func() {
             retVal = errors.New("First Error")
@@ -111,9 +112,9 @@ func case3() {
     }
 
     fmt.Println("\twithout:")
-    fmt.Println(helperWithoutDefer(false))
-    fmt.Println(helperWithoutDefer(true))
+    fmt.Println(helperWithoutDefer(false)) // nil
+    fmt.Println(helperWithoutDefer(true)) // Default error
     fmt.Println("\twith:")
-    fmt.Println(helperWithDefer(false))
-    fmt.Println(helperWithDefer(true))
+    fmt.Println(helperWithDefer(false)) // First error
+    fmt.Println(helperWithDefer(true)) // First error
 }
