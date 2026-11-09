@@ -12,9 +12,9 @@ func (e *CustomError) Error() string {
 
 func returnError(flag bool) error {
 	if flag {
-		return &CustomError{"Что-то пошло не так"}
+		return &CustomError{"Что-то пошло не так"} // интерфейс с определенным типом и значением != nil
 	}
-	var err *CustomError
+	var err *CustomError // интерфейс с определенным типом != nil
 	return err
 }
 
@@ -22,7 +22,7 @@ func main() {
 	err1 := returnError(true)
 	err2 := returnError(false)
 
-	fmt.Println("err1 == nil:", err1 == nil)
-	fmt.Println("err2 == nil:", err2 == nil)
+	fmt.Println("err1 == nil:", err1 == nil) //false
+	fmt.Println("err2 == nil:", err2 == nil) //false
 
 }

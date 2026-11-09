@@ -1,9 +1,10 @@
 // Анализ цепочек ошибок в Go error.Is
-package t6
+package main
 
 import (
 	"errors"
-	_ "fmt"
+	"fmt"
+	"math/rand"
 )
 
 var (
@@ -12,8 +13,34 @@ var (
 )
 
 func SimulateRequest() error {
-	return nil
+	randInt := rand.Intn(10)
+
+	switch {
+	case randInt < 5:
+		return fmt.Errorf("запрос не выполнен: %w", TimeoutError)
+	case randInt < 8:
+		return fmt.Errorf("ошибка: %w", ErrNotFound)
+	default:
+		return errors.New("неизвестная ошибка")
+	}
 }
 
 func ProcessError(err error) {
+	if errors.Is(err, TimeoutError) {
+		fmt.Println("Требуется повторная попытка")
+		return
+	}
+
+	if errors.Is(err, ErrNotFound) {
+		fmt.Println("Ресурс не найден")
+		return
+	}
+
+	fmt.Println("Неизвестная ошибка")
+}
+
+func main() {
+	for range 10 {
+		ProcessError(SimulateRequest())
+	}
 }

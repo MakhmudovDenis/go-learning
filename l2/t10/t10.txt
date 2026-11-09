@@ -1,31 +1,32 @@
-package main  
-  
-import (  
-    "fmt"  
-)  
-  
-type errorString struct {  
-    s string  
-}  
-  
-func (e errorString) Error() string {  
-    return e.s  
-}  
-  
-func checkErr(err error) {  
-    fmt.Println(err == nil)  
-}  
-  
-func main() {  
-    var e1 error  
-    checkErr(e1)  
-  
-    var e *errorString  
-    checkErr(e)  
-  
-    e = &errorString{}  
-    checkErr(e)  
-  
-    e = nil  
-    checkErr(e)  
+package main
+
+import (
+	"fmt"
+)
+
+type errorString struct {
+	s string
 }
+
+func (e errorString) Error() string {
+	return e.s
+}
+
+func checkErr(err error) {
+	fmt.Println(err == nil)
+}
+// интерфейсное значение = nil только если и тип, и значение неизвестны
+func main() {
+	var e1 error // nil интерфейс
+	checkErr(e1) // true
+
+	var e *errorString // интерфейс с известным типом (указатель на errorString)
+	checkErr(e) //false
+
+	e = &errorString{} // интерфейс с известным типом и значением
+	checkErr(e) // false
+
+	e = nil // интерфейс с известным типом
+	checkErr(e) // false
+}
+
