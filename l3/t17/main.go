@@ -3,11 +3,10 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 )
 
-const ULDelta byte = 32 // осознанно поддерживаем только юникод
+const ULDelta byte = 32
 
 var bufferPool = sync.Pool{
 	New: func() any {
@@ -35,15 +34,12 @@ func ProcessString(s string) string {
 	return res
 }
 
-var s string = strings.ToUpper("asdsa")
-
 func main() {
 	examples := []string{
 		"hello, world!",
 		"gopher",
 		"lorem ipsum dolor sit amet",
 	}
-	fmt.Println('C')
 
 	for _, s := range examples {
 		processed := ProcessString(s)

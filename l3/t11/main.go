@@ -2,24 +2,28 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 )
+
+var ErrQueueClosed = errors.New("queue is shut down")
 
 type BoundedQueue struct {
 	mu       sync.Mutex
 	notEmpty *sync.Cond
 	notFull  *sync.Cond
 
+	// теперь ринг буфер
 	tasks    []any
-	cap      int
+	head     int
+	count    int
 	shutdown bool
 }
 
-func NewBoundedQueue(cap int) *BoundedQueue {
+func NewBoundedQueue(capacity int) *BoundedQueue {
 	q := &BoundedQueue{
-		tasks: make([]any, 0, cap),
-		cap:   cap,
+		tasks: make([]any, capacity),
 	}
 
 	q.notEmpty = sync.NewCond(&q.mu)
@@ -28,40 +32,45 @@ func NewBoundedQueue(cap int) *BoundedQueue {
 	return q
 }
 
-func (q *BoundedQueue) Put(task any) {
+func (q *BoundedQueue) Put(task any) error {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	for len(q.tasks) == q.cap && !q.shutdown {
+	for q.count == len(q.tasks) && !q.shutdown {
 		q.notFull.Wait()
 	}
 
 	if q.shutdown {
-		return
+		return ErrQueueClosed
 	}
 
-	q.tasks = append(q.tasks, task)
+	tail := (q.head + q.count) % len(q.tasks)
+	q.tasks[tail] = task
+	q.count++
+
 	q.notEmpty.Signal()
+	return nil
 }
 
-func (q *BoundedQueue) Get() any {
+func (q *BoundedQueue) Get() (task any, ok bool) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	for len(q.tasks) == 0 && !q.shutdown {
+	for q.count == 0 && !q.shutdown {
 		q.notEmpty.Wait()
 	}
 
-	if len(q.tasks) == 0 {
-		return nil
+	if q.count == 0 {
+		return nil, false
 	}
 
-	task := q.tasks[0]
-	q.tasks[0] = nil
-	q.tasks = q.tasks[1:]
+	task = q.tasks[q.head]
+	q.tasks[q.head] = nil
+	q.head = (q.head + 1) % len(q.tasks)
+	q.count--
 
 	q.notFull.Signal()
-	return task
+	return task, true
 }
 
 func (q *BoundedQueue) Shutdown() {
@@ -85,11 +94,9 @@ func main() {
 
 	for i := range 2 {
 		wg.Go(func() {
-			defer wg.Done()
-
 			for {
-				task := q.Get()
-				if task == nil {
+				task, ok := q.Get()
+				if !ok {
 					fmt.Println("consumer", i, "stopping")
 					return
 				}
@@ -100,10 +107,16 @@ func main() {
 	}
 
 	for i := range 5 {
-		q.Put(i)
+		if err := q.Put(i); err != nil {
+			fmt.Println("put failed:", err)
+		}
 	}
 
 	q.Shutdown()
+
+	if err := q.Put(100); err != nil {
+		fmt.Println("put after shutdown:", err)
+	}
 
 	wg.Wait()
 }

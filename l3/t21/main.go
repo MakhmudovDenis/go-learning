@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
-	_ "time"
 )
 
-func fetchUrl(url string) error {
+func fetchURL(url string) error {
 	_, err := http.Get(url)
 	return err
 }
@@ -25,7 +24,7 @@ func main() {
 		go func(url string) {
 			defer wg.Done()
 			fmt.Printf("Fetching %s....\n", url)
-			err := fetchUrl(url)
+			err := fetchURL(url)
 			if err != nil {
 				fmt.Printf("Error feaching %s: %v\n", url, err)
 				return

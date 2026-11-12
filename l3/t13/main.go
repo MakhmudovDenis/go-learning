@@ -8,67 +8,59 @@ import (
 )
 
 type Connection struct {
-	ID     int
-	isBusy bool
+	ID int
 }
 
 type ConnectionPool struct {
-	mu           sync.Mutex
-	hasFreeConns sync.Cond
-	hasBusyConns sync.Cond
+	mu   sync.Mutex
+	cond *sync.Cond
 
-	conns     []*Connection
-	busyCount int
+	free  []*Connection
+	inUse map[*Connection]struct{}
 }
 
-func NewConnectionPool(cap int) *ConnectionPool {
+func NewConnectionPool(size int) *ConnectionPool {
 	p := &ConnectionPool{
-		conns: make([]*Connection, cap),
+		free:  make([]*Connection, 0, size),
+		inUse: make(map[*Connection]struct{}, size),
 	}
+	p.cond = sync.NewCond(&p.mu)
 
-	p.hasFreeConns = *sync.NewCond(&p.mu)
-	p.hasBusyConns = *sync.NewCond(&p.mu)
-
-	for i := range cap {
-		p.conns[i] = &Connection{i, false}
+	for i := range size {
+		p.free = append(p.free, &Connection{ID: i})
 	}
 
 	return p
 }
 
-func (c *ConnectionPool) Get() *Connection {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func (p *ConnectionPool) Get() *Connection {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-	for c.busyCount == len(c.conns) {
-		c.hasFreeConns.Wait()
+	for len(p.free) == 0 {
+		p.cond.Wait()
 	}
 
-	c.hasBusyConns.Signal()
+	last := len(p.free) - 1
+	conn := p.free[last]
+	p.free[last] = nil
+	p.free = p.free[:last]
 
-	for _, conn := range c.conns {
-		if !conn.isBusy {
-			conn.isBusy = true
-			c.busyCount++
-			return conn
-		}
-	}
-
-	return nil
+	p.inUse[conn] = struct{}{}
+	return conn
 }
 
-func (c *ConnectionPool) Release(conn *Connection) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func (p *ConnectionPool) Release(conn *Connection) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-	for c.busyCount == 0 {
-		c.hasBusyConns.Wait()
+	if _, ok := p.inUse[conn]; !ok {
+		panic(fmt.Sprintf("pool: releasing connection %v that is not in use", conn))
 	}
 
-	c.hasFreeConns.Signal()
-
-	conn.isBusy = false
-	c.busyCount--
+	delete(p.inUse, conn)
+	p.free = append(p.free, conn)
+	p.cond.Signal()
 }
 
 func main() {

@@ -7,7 +7,7 @@ import (
 )
 
 type SafeCache struct {
-	sync.RWMutex
+	mu   sync.RWMutex
 	data map[string]string
 }
 
@@ -18,14 +18,14 @@ func NewSafeCache() *SafeCache {
 }
 
 func (c *SafeCache) Set(key, value string) {
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.data[key] = value
 }
 
 func (c *SafeCache) Get(key string) (val string, ok bool) {
-	c.RLock()
-	defer c.RUnlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	val, ok = c.data[key]
 	return
 }
@@ -47,7 +47,7 @@ func reader(wg *sync.WaitGroup, id int, cache *SafeCache) {
 }
 
 func writer(wg *sync.WaitGroup, id int, cache *SafeCache) {
-	wg.Done()
+	defer wg.Done()
 	for i := range 1000 {
 		key := fmt.Sprintf("key-%d", i%100)
 		value := fmt.Sprintf("writer-%d", id)

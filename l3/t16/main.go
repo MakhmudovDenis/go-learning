@@ -42,27 +42,16 @@ func (pm *PluginManager) RegisterPlugin(name string, initFn func() (Plugin, erro
 }
 
 func (pm *PluginManager) GetPlugin(name string) (Plugin, error) {
-	pm.mu.Lock()
-	defer pm.mu.Unlock()
-
+	pm.mu.RLock()
 	entry, exists := pm.plugins[name]
-	if !exists {
-		return nil, errPluginNotExist
-	}
+	pm.mu.RUnlock()
 
-	if entry.err != nil {
-		fmt.Printf("cached error for %s:%v\n", name, entry.err)
-		return nil, entry.err
+	if !exists {
+		return nil, fmt.Errorf("%w: %s", errPluginNotExist, name)
 	}
 
 	entry.once.Do(func() {
-		plugin, err := entry.initFn()
-		if err != nil {
-			entry.err = err
-			return
-		}
-
-		entry.plugin = plugin
+		entry.plugin, entry.err = entry.initFn()
 	})
 
 	return entry.plugin, entry.err
@@ -90,7 +79,7 @@ func main() {
 	var wg sync.WaitGroup
 
 	// Тестирование рабочего плагина
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()

@@ -3,74 +3,72 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"sync"
+	"time"
 )
 
 type Restaurant struct {
-	notFull  sync.Cond
-	notEmpty sync.Cond
-	mu       sync.Mutex
+	mu   sync.Mutex
+	cond *sync.Cond
 
-	cap            int
-	occupiedTables int
+	tables   int
+	occupied int
+
+	nextTicket int
+	nowServing int
 }
 
-func NewRestaurant(cap int) *Restaurant {
-	q := &Restaurant{
-		cap:            cap,
-		occupiedTables: 0,
-	}
-
-	q.notEmpty = *sync.NewCond(&q.mu)
-	q.notFull = *sync.NewCond(&q.mu)
-
-	return q
+func NewRestaurant(tables int) *Restaurant {
+	r := &Restaurant{tables: tables}
+	r.cond = sync.NewCond(&r.mu)
+	return r
 }
 
 func (r *Restaurant) OccupyTable() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	for r.occupiedTables == r.cap {
-		r.notFull.Wait()
+	ticket := r.nextTicket
+	r.nextTicket++
+
+	for ticket != r.nowServing || r.occupied == r.tables {
+		r.cond.Wait()
 	}
 
-	r.occupiedTables++
+	r.occupied++
+	r.nowServing++
 
-	r.notEmpty.Signal()
-	fmt.Println("occupied, now", r.occupiedTables)
+	r.cond.Broadcast()
 }
 
 func (r *Restaurant) ReleaseTable() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	for r.occupiedTables == 0 {
-		r.notEmpty.Wait()
+	if r.occupied == 0 {
+		panic("restaurant: ReleaseTable called with no occupied tables")
 	}
 
-	r.occupiedTables--
-
-	r.notFull.Signal()
-	fmt.Println("released, now", r.occupiedTables)
+	r.occupied--
+	r.cond.Broadcast()
 }
 
 func main() {
-	visitorsCount := 100
+	const visitors = 20
 	r := NewRestaurant(5)
 
 	var wg sync.WaitGroup
-	wg.Go(func() {
-		for range visitorsCount {
+	for id := range visitors {
+		wg.Go(func() {
 			r.OccupyTable()
-		}
-	})
+			defer r.ReleaseTable()
 
-	wg.Go(func() {
-		for range visitorsCount {
-			r.ReleaseTable()
-		}
-	})
+			fmt.Printf("visitor %2d sat down\n", id)
+			time.Sleep(time.Duration(50+rand.Intn(150)) * time.Millisecond)
+			fmt.Printf("visitor %2d left\n", id)
+		})
+	}
 
 	wg.Wait()
 }

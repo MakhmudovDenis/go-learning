@@ -28,34 +28,23 @@ func mergeChannels(channels ...<-chan int) <-chan int {
 	return retChan
 }
 
-func sender(wg *sync.WaitGroup, ch chan int, cap, inc int) {
-	defer wg.Done()
-	for i := 0; i < cap; i += inc {
+func sender(ch chan int, n, inc int) {
+	defer close(ch)
+	for i := 0; i < n; i += inc {
 		ch <- i
 	}
-	close(ch)
 }
 
 func main() {
-	var wg sync.WaitGroup
 	a := make(chan int)
 	b := make(chan int)
 	c := make(chan int)
 
-	wg.Add(3)
-	go sender(&wg, a, 10, 2)
-	go sender(&wg, b, 20, 3)
-	go sender(&wg, c, 30, 4)
+	go sender(a, 10, 2)
+	go sender(b, 20, 3)
+	go sender(c, 30, 4)
 
-	d := mergeChannels(a, b, c)
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for val := range d {
-			fmt.Println(val)
-		}
-	}()
-
-	wg.Wait()
+	for v := range mergeChannels(a, b, c) {
+		fmt.Println(v)
+	}
 }

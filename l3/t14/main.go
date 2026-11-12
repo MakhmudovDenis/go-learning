@@ -13,7 +13,7 @@ type Connection struct {
 
 type Database struct {
 	conn Connection
-	sync.Once
+	once sync.Once
 }
 
 func NewDatabase() *Database {
@@ -21,7 +21,7 @@ func NewDatabase() *Database {
 }
 
 func (db *Database) GetConnection() *Connection {
-	db.Do(func() {
+	db.once.Do(func() {
 		time.Sleep(2 * time.Second)
 		db.conn = Connection{0}
 	})

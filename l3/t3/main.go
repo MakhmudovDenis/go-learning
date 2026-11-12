@@ -5,13 +5,11 @@ import (
 	"sync"
 )
 
-func generator(wg *sync.WaitGroup, cap int) chan int {
+func generator(n int) <-chan int {
 	ch := make(chan int)
-	wg.Add(1)
 
 	go func() {
-		defer wg.Done()
-		for i := range cap {
+		for i := range n {
 			ch <- i
 		}
 		close(ch)
@@ -20,35 +18,32 @@ func generator(wg *sync.WaitGroup, cap int) chan int {
 	return ch
 }
 
-func squarer(wg *sync.WaitGroup, naturals chan int, squares chan int) {
-	wg.Add(1)
+func squarer(naturals <-chan int) <-chan int {
+	output := make(chan int)
 
 	go func() {
-		defer wg.Done()
 		for val := range naturals {
-			squares <- val * val
+			output <- val * val
 		}
-		close(squares)
+		close(output)
 	}()
+
+	return output
 }
 
-func printer(wg *sync.WaitGroup, squares chan int) {
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		for i := range squares {
-			fmt.Println(i)
-		}
-	}()
+func printer(wg *sync.WaitGroup, squares <-chan int) {
+	defer wg.Done()
+	for i := range squares {
+		fmt.Println(i)
+	}
 }
 
 func main() {
 	var wg sync.WaitGroup
-	cap := 50
-	naturals := generator(&wg, cap)
-	squares := make(chan int)
-	squarer(&wg, naturals, squares)
-	printer(&wg, squares)
+	n := 50
+	naturals := generator(n)
+	squares := squarer(naturals)
+	wg.Add(1)
+	go printer(&wg, squares)
 	wg.Wait()
 }

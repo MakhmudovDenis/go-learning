@@ -17,16 +17,18 @@ func dbReplica(name string, in <-chan int) {
 }
 
 func Tee(mainCh chan int, output []chan int) {
-	go func() {
-		for v := range mainCh {
-			for _, ch := range output {
-				ch <- v
-			}
-		}
+	for v := range mainCh {
+		var wg sync.WaitGroup
 		for _, ch := range output {
-			close(ch)
+			wg.Go(func() {
+				ch <- v
+			})
 		}
-	}()
+		wg.Wait()
+	}
+	for _, ch := range output {
+		close(ch)
+	}
 }
 
 func main() {

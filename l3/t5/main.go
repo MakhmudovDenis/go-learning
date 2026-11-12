@@ -4,13 +4,18 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
-	"strings"
+	"runtime"
 	"sync"
 )
 
 const dataDir string = "data"
+
+type result struct {
+	file  string
+	words int
+	err   error
+}
 
 func getWordCount(filename string) (int, error) {
 	file, err := os.Open(filename)
@@ -34,90 +39,62 @@ func getWordCount(filename string) (int, error) {
 	return count, nil
 }
 
-func getFiles() (chan string, int, error) {
+func worker(files <-chan string, results chan<- result) {
+	for f := range files {
+		n, err := getWordCount(f)
+		results <- result{f, n, err}
+	}
+}
+
+func getFiles() (<-chan string, error) {
 	files, err := os.ReadDir(dataDir)
 	if err != nil {
-		return nil, 0, fmt.Errorf("ошибка при чтении директории: %w", err)
+		return nil, fmt.Errorf("ошибка при чтении директории: %w", err)
 	}
 
 	output := make(chan string)
 
 	go func() {
+		defer close(output)
+
 		for _, file := range files {
-			output <- fmt.Sprintf("%v/%v", dataDir, file.Name())
-		}
-		close(output)
-	}()
-
-	return output, len(files), nil
-}
-
-func fanOut(inputCh chan string, n int) []chan string {
-	output := make([]chan string, n)
-	for i := range n {
-		output[i] = make(chan string)
-	}
-
-	idx := 0
-	go func() {
-		for v := range inputCh {
-			output[idx] <- v
-			idx = (idx + 1) % n
-		}
-
-		for _, ch := range output {
-			close(ch)
+			if file.IsDir() {
+				continue
+			}
+			output <- fmt.Sprintf("%s/%s", dataDir, file.Name())
 		}
 	}()
 
-	return output
-}
-
-func worker(wg *sync.WaitGroup, ch chan string, res *sync.Map) {
-	defer wg.Done()
-	filename := <-ch
-	wordCount, err := getWordCount(filename)
-	if err != nil {
-		log.Fatalf("ошибка при подсчёте слов в %v:%v", filename, err)
-		return
-	}
-
-	res.Store(filename, wordCount)
-}
-
-func printSyncMap(m *sync.Map) {
-	out := make(map[string]int)
-	m.Range(func(key, val any) bool {
-		_, filename, found := strings.Cut(key.(string), "/")
-		if !found {
-			return false
-		}
-		out[filename] = val.(int)
-		return true
-	})
-	fmt.Println(out)
+	return output, nil
 }
 
 func main() {
-	var wg sync.WaitGroup
-
-	mainChan, chanCount, err := getFiles()
+	files, err := getFiles()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
 		return
 	}
-	splitChans := fanOut(mainChan, chanCount)
 
-	var res sync.Map
-	wg.Add(chanCount + 1)
+	results := make(chan result)
+
+	var wg sync.WaitGroup
+	for range runtime.NumCPU() {
+		wg.Go(func() { worker(files, results) })
+	}
 
 	go func() {
-		defer wg.Done()
-		for _, ch := range splitChans {
-			go worker(&wg, ch, &res)
-		}
+		wg.Wait()
+		close(results)
 	}()
 
-	wg.Wait()
-	printSyncMap(&res)
+	wordCount := 0
+	for r := range results {
+		if r.err != nil {
+			fmt.Printf("%s: %v", r.file, r.err)
+			continue
+		}
+		fmt.Printf("%s: %d\n", r.file, r.words)
+		wordCount += r.words
+	}
+	fmt.Println("всего слов:", wordCount)
 }

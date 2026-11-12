@@ -24,13 +24,13 @@ func transform[T any](input <-chan T, action func(T) T) <-chan T {
 	return output
 }
 
-func bytesToMegabytes[T any](m ServerMetric) ServerMetric {
+func bytesToMegabytes(m ServerMetric) ServerMetric {
 	m.Value = m.Value / 1024 / 1024
 	return m
 }
 
 func main() {
-	letters := []byte("abcdefghjklmnopqrstuvwxyz") // имена метрик
+	letters := []byte("abcdefghijklmnopqrstuvwxyz") // имена метрик
 
 	metrics := make(chan ServerMetric)
 	var wg sync.WaitGroup
@@ -45,7 +45,7 @@ func main() {
 		}
 	})
 
-	resChan := transform(metrics, bytesToMegabytes[ServerMetric])
+	resChan := transform(metrics, bytesToMegabytes)
 
 	wg.Go(func() {
 		for v := range resChan {

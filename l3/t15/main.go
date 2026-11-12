@@ -5,129 +5,104 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"sync"
 	"time"
 )
 
+type loader func() (map[string]string, error)
+
+type source struct {
+	name string
+	load loader
+}
+
+func fakeLoader(name string, delay time.Duration) loader {
+	return func() (map[string]string, error) {
+		time.Sleep(delay)
+		if rand.Intn(2) == 0 {
+			return map[string]string{
+				"app_name":  "MyApp",
+				"port":      "8080",
+				"log_level": "debug",
+			}, nil
+		}
+		return nil, fmt.Errorf("loading config from %s failed", name)
+	}
+}
+
+var defaultSources = []source{
+	{"env", fakeLoader("env", 1*time.Second)},
+	{"file", fakeLoader("file", 2*time.Second)},
+	{"db", fakeLoader("db", 3*time.Second)},
+}
+
 type ConfigManager struct {
-	config  map[string]string
-	initSrc string
+	sources []source
 	once    sync.Once
+	config  map[string]string
+	loadErr error
 }
 
-var initSources = [3]string{"env", "file", "db"}
-
-func NewConfigManager(initSrc string) (*ConfigManager, error) {
-	validSrc := false
-	for _, src := range initSources {
-		if initSrc == src {
-			validSrc = true
-			break
+func NewConfigManager(preferred string) (*ConfigManager, error) {
+	ordered := make([]source, 0, len(defaultSources))
+	for _, s := range defaultSources {
+		if s.name == preferred {
+			ordered = append(ordered, s)
+		}
+	}
+	if len(ordered) == 0 {
+		names := make([]string, len(defaultSources))
+		for i, s := range defaultSources {
+			names[i] = s.name
+		}
+		return nil, fmt.Errorf("invalid init source %q, expected one of %v", preferred, names)
+	}
+	for _, s := range defaultSources {
+		if s.name != preferred {
+			ordered = append(ordered, s)
 		}
 	}
 
-	if !validSrc {
-		return nil, fmt.Errorf("invalid init source: %s\nexpected one of %v", initSrc, initSources)
-	}
-
-	return &ConfigManager{
-		initSrc: initSrc,
-	}, nil
+	return &ConfigManager{sources: ordered}, nil
 }
 
-func (cm *ConfigManager) loadConfigFromEnv() error {
-	time.Sleep(1 * time.Second)
-	if rand.Intn(2) == 0 {
-		cm.config = map[string]string{
-			"app_name":  "MyApp",
-			"port":      "8080",
-			"log_level": "debug",
-		}
-		return nil
-	}
-
-	return errors.New("loading config from env failed")
-}
-
-func (cm *ConfigManager) loadConfigFromFile() error {
-	time.Sleep(2 * time.Second)
-	if rand.Intn(2) == 0 {
-		cm.config = map[string]string{
-			"app_name":  "MyApp",
-			"port":      "8080",
-			"log_level": "debug",
-		}
-		return nil
-	}
-
-	return errors.New("loading config from file failed")
-}
-
-func (cm *ConfigManager) loadConfigFromDB() error {
-	time.Sleep(3 * time.Second)
-	if rand.Intn(2) == 0 {
-		cm.config = map[string]string{
-			"app_name":  "MyApp",
-			"port":      "8080",
-			"log_level": "debug",
-		}
-		return nil
-	}
-
-	return errors.New("loading config from db failed")
-}
-
-func (cm *ConfigManager) loadConfig() error {
-	errs := make([]error, 0)
+func (cm *ConfigManager) LoadConfig() error {
 	cm.once.Do(func() {
-		loadConfigFunctions := map[string]func() error{
-			"env":  cm.loadConfigFromEnv,
-			"file": cm.loadConfigFromFile,
-			"db":   cm.loadConfigFromDB,
-		}
-
-		err := loadConfigFunctions[cm.initSrc]()
-		if err == nil {
-			return
-		}
-
-		errs = append(errs, err)
-
-		for src, loadConfigFunc := range loadConfigFunctions {
-			if src == cm.initSrc {
-				continue
-			}
-			err := loadConfigFunc()
-			if err == nil {
-				return
-			}
-			errs = append(errs, err)
-		}
+		cm.config, cm.loadErr = cm.loadFirstAvailable()
 	})
-	if len(errs) != 0 {
-		return fmt.Errorf("config loading failed with errors: %v", errs)
-	}
-	return nil
+	return cm.loadErr
 }
 
-func (cm *ConfigManager) Get(key string) (string, error) {
-	if err := cm.loadConfig(); err != nil {
-		return "", err
+func (cm *ConfigManager) loadFirstAvailable() (map[string]string, error) {
+	var errs []error
+	for _, s := range cm.sources {
+		cfg, err := s.load()
+		if err == nil {
+			return cfg, nil
+		}
+		errs = append(errs, err)
 	}
+	return nil, fmt.Errorf("all config sources failed: %w", errors.Join(errs...))
+}
 
-	return cm.config[key], nil
+func (cm *ConfigManager) Get(key string) string {
+	if cm.LoadConfig() != nil {
+		return ""
+	}
+	return cm.config[key]
 }
 
 func (cm *ConfigManager) PrintConfig() {
-	if err := cm.loadConfig(); err != nil {
+	if err := cm.LoadConfig(); err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	jsonConfig, err := json.Marshal(cm.config)
 	if err != nil {
-		fmt.Printf("marshalling json failed with error: %v", err)
+		fmt.Printf("marshalling json failed with error: %v\n", err)
 		return
 	}
 
@@ -137,8 +112,20 @@ func (cm *ConfigManager) PrintConfig() {
 func main() {
 	cm, err := NewConfigManager("env")
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
-	fmt.Println(cm.Get("port"))
+
+	var wg sync.WaitGroup
+	for i := range 5 {
+		wg.Go(func() {
+			if err := cm.LoadConfig(); err != nil {
+				fmt.Printf("goroutine %d: %v\n", i, err)
+				return
+			}
+			fmt.Printf("goroutine %d: port=%s\n", i, cm.Get("port"))
+		})
+	}
+	wg.Wait()
+
 	cm.PrintConfig()
 }

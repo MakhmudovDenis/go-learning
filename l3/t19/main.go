@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -13,23 +14,64 @@ type CacheEntry struct {
 	expiresAt time.Time
 }
 
+func (e *CacheEntry) expired(now time.Time) bool {
+	return now.After(e.expiresAt)
+}
+
+var bufPool = sync.Pool{
+	New: func() any { return new(bytes.Buffer) },
+}
+
 type SafeCache struct {
 	ttl  time.Duration
 	mu   sync.RWMutex
 	data map[string]*CacheEntry
-	pool sync.Pool
+
+	done      chan struct{}
+	closeOnce sync.Once
 }
 
-func NewSafeCache(TTL time.Duration) *SafeCache {
-	return &SafeCache{
+func NewSafeCache(ttl time.Duration) *SafeCache {
+	c := &SafeCache{
+		ttl:  ttl,
 		data: make(map[string]*CacheEntry),
-		ttl:  TTL,
-		pool: sync.Pool{
-			New: func() any {
-				return make(map[string]any)
-			},
-		},
+		done: make(chan struct{}),
 	}
+
+	go c.janitor(ttl / 2)
+
+	return c
+}
+
+func (c *SafeCache) janitor(every time.Duration) {
+	ticker := time.NewTicker(every)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			c.deleteExpired()
+		case <-c.done:
+			return
+		}
+	}
+}
+
+func (c *SafeCache) deleteExpired() {
+	now := time.Now()
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for key, entry := range c.data {
+		if entry.expired(now) {
+			delete(c.data, key)
+		}
+	}
+}
+
+func (c *SafeCache) Close() {
+	c.closeOnce.Do(func() { close(c.done) })
 }
 
 func (c *SafeCache) Set(key string, value any) {
@@ -47,11 +89,7 @@ func (c *SafeCache) Get(key string) (any, bool) {
 	defer c.mu.RUnlock()
 
 	entry, exists := c.data[key]
-	if !exists {
-		return nil, false
-	}
-
-	if time.Now().After(entry.expiresAt) {
+	if !exists || entry.expired(time.Now()) {
 		return nil, false
 	}
 
@@ -66,37 +104,51 @@ func (c *SafeCache) Delete(key string) {
 }
 
 func (c *SafeCache) ToJSON() ([]byte, error) {
+	now := time.Now()
 	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	tempMap := c.pool.Get().(map[string]any)
-	defer func() {
-		clear(tempMap)
-		c.pool.Put(tempMap)
-	}()
-
-	for key, val := range c.data {
-		tempMap[key] = val.value
+	snapshot := make(map[string]any, len(c.data))
+	for key, entry := range c.data {
+		if !entry.expired(now) {
+			snapshot[key] = entry.value
+		}
 	}
+	c.mu.RUnlock()
 
-	jsonData, err := json.Marshal(tempMap)
-	if err != nil {
+	buf := bufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bufPool.Put(buf)
+
+	if err := json.NewEncoder(buf).Encode(snapshot); err != nil {
 		return nil, err
 	}
 
-	return jsonData, nil
+	return bytes.Clone(bytes.TrimSuffix(buf.Bytes(), []byte("\n"))), nil
 }
 
 func main() {
-	c := NewSafeCache(5 * time.Second)
-	c.Set("hehe", 123)
-	fmt.Println(c.Get("hehe"))
+	cache := NewSafeCache(2 * time.Second)
+	defer cache.Close()
 
-	j, err := c.ToJSON()
+	cache.Set("user:1", map[string]string{"name": "Alice", "role": "admin"})
+	cache.Set("user:2", map[string]string{"name": "Bob", "role": "user"})
+
+	if user, found := cache.Get("user:1"); found {
+		fmt.Println("Найден:", user)
+	}
+
+	jsonData, err := cache.ToJSON()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	fmt.Println("Кэш в JSON:", string(jsonData))
 
-	fmt.Println(string(j))
+	time.Sleep(3500 * time.Millisecond)
+
+	_, found := cache.Get("user:1")
+	fmt.Println("После TTL, user:1 найден?", found)
+
+	cache.mu.RLock()
+	fmt.Println("Записей в map после очистки:", len(cache.data)) // 0: really deleted, not just hidden
+	cache.mu.RUnlock()
 }

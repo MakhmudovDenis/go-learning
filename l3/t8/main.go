@@ -6,99 +6,82 @@ import (
 	"sync"
 )
 
-type data[T any] struct {
-	value  T
-	parsed bool
-	sent   bool
+func generate(items ...string) <-chan string {
+	out := make(chan string)
+	go func() {
+		defer close(out)
+		for _, it := range items {
+			out <- it
+		}
+	}()
+	return out
 }
 
-func parse[T any](input <-chan T) <-chan data[T] {
-	output := make(chan data[T])
+func parse(in <-chan string) <-chan string {
+	out := make(chan string)
+	go func() {
+		defer close(out)
+		for v := range in {
+			out <- "parsed - " + v
+		}
+	}()
+	return out
+}
+
+func split(in <-chan string, n int) []<-chan string {
+	outs := make([]chan string, n)
+	result := make([]<-chan string, n)
+	for i := range n {
+		outs[i] = make(chan string)
+		result[i] = outs[i]
+	}
 
 	go func() {
-		defer close(output)
-
-		for val := range input {
-			output <- data[T]{
-				value:  val,
-				parsed: true,
+		defer func() {
+			for _, ch := range outs {
+				close(ch)
 			}
+		}()
+
+		i := 0
+		for v := range in {
+			outs[i] <- v
+			i = (i + 1) % n
 		}
 	}()
 
-	return output
+	return result
 }
 
-func fanOut[T any](input <-chan data[T], n int) []<-chan data[T] {
-	output := make([]chan data[T], n)
-	for i := range output {
-		output[i] = make(chan data[T])
+func send(ins []<-chan string) <-chan string {
+	out := make(chan string)
+
+	var wg sync.WaitGroup
+	for _, in := range ins {
+		wg.Go(func() {
+			for v := range in {
+				out <- "sent - " + v
+			}
+		})
 	}
 
 	go func() {
-		idx := 0
-		for v := range input {
-			output[idx] <- v
-			idx = (1 + idx) % n
-		}
-
-		for _, ch := range output {
-			close(ch)
-		}
+		wg.Wait()
+		close(out)
 	}()
 
-	res := make([]<-chan data[T], n)
-	for i, ch := range output {
-		res[i] = ch
-	}
-
-	return res
-}
-
-func send[T any](input <-chan data[T]) <-chan data[T] {
-	output := make(chan data[T])
-
-	go func() {
-		defer close(output)
-
-		for val := range input {
-			val.sent = true
-			output <- val
-		}
-	}()
-
-	return output
+	return out
 }
 
 func main() {
-	chanCount := 4
-	input := make(chan int)
-	var wg sync.WaitGroup
+	items := make([]string, 10)
+	for i := range items {
+		items[i] = fmt.Sprintf("item %d", i)
+	}
 
-	wg.Go(func() {
-		defer func() {
-			close(input)
-			wg.Done()
-		}()
-		for i := range 30 {
-			input <- i
-		}
-	})
+	results := send(split(parse(generate(items...)), 4))
 
-	wg.Add(1 + chanCount)
-
-	go func() {
-		defer wg.Done()
-		for i, ch := range fanOut(parse(input), chanCount) {
-			sent := send(ch)
-			go func() {
-				defer wg.Done()
-				for v := range sent {
-					fmt.Printf("получено %v из канала %d\n", v, i)
-				}
-			}()
-		}
-	}()
-
-	wg.Wait()
+	for r := range results {
+		fmt.Println(r)
+	}
 }
