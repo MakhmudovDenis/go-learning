@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package userapi;
+
+option go_package = "userapi/gen/userapi;userapipb";
+
+service UserapiService {
+  rpc Create (CreateRequest) returns (CreateResponse);
+  rpc Get (GetRequest) returns (GetResponse);
+  rpc Update (UpdateRequest) returns (UpdateResponse);
+  rpc Delete (DeleteRequest) returns (DeleteResponse);
+}
+
+message CreateRequest {
+  string name = 1;
+  string email = 2;
+  string password = 3;
+  string password_confirm = 4;
+  Role role = 5;
+}
+
+enum Role {
+  ROLE_USER = 0;
+  ROLE_ADMIN = 1;
+}
+
+message CreateResponse {
+  int64 id = 1;
+}
