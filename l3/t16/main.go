@@ -2,35 +2,37 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"sync"
+	"time"
 )
 
-// Интерфейс для всех плагинов
+var errPluginNotExist = errors.New("plugin does not exist")
+
 type Plugin interface {
 	Execute() string
 }
 
-// Управляет инициализацией и доступом к плагинам
 type PluginManager struct {
 	plugins map[string]*pluginEntry
 	mu      sync.RWMutex
 }
 
 type pluginEntry struct {
-	// Добавить необходимые поля для однократной инициализации
+	once   sync.Once
+	plugin Plugin
 	initFn func() (Plugin, error)
+	err    error
 }
 
-// NewPluginManager создает новый менеджер плагинов
 func NewPluginManager() *PluginManager {
 	return &PluginManager{
 		plugins: make(map[string]*pluginEntry),
 	}
 }
 
-// RegisterPlugin регистрирует новый плагин
 func (pm *PluginManager) RegisterPlugin(name string, initFn func() (Plugin, error)) {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
@@ -39,17 +41,22 @@ func (pm *PluginManager) RegisterPlugin(name string, initFn func() (Plugin, erro
 	}
 }
 
-// GetPlugin возвращает инициализированный плагин
 func (pm *PluginManager) GetPlugin(name string) (Plugin, error) {
-	// Реализовать:
-	// 1. Проверку существования плагина
-	// 2. Потокобезопасную однократную инициализацию
-	// 3. Обработку и кэширование ошибок
-	// 4. Возврат кэшированного результата
-	return nil, fmt.Errorf("not implemented")
+	pm.mu.RLock()
+	entry, exists := pm.plugins[name]
+	pm.mu.RUnlock()
+
+	if !exists {
+		return nil, fmt.Errorf("%w: %s", errPluginNotExist, name)
+	}
+
+	entry.once.Do(func() {
+		entry.plugin, entry.err = entry.initFn()
+	})
+
+	return entry.plugin, entry.err
 }
 
-// DemoPlugin реализация плагина
 type DemoPlugin struct{}
 
 func (p *DemoPlugin) Execute() string {
@@ -57,8 +64,7 @@ func (p *DemoPlugin) Execute() string {
 }
 
 func initDemo() (Plugin, error) {
-	// Имитация длительной инициализации
-	// time.Sleep(500 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 	return &DemoPlugin{}, nil
 }
 
@@ -73,7 +79,7 @@ func main() {
 	var wg sync.WaitGroup
 
 	// Тестирование рабочего плагина
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()

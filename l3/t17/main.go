@@ -1,6 +1,39 @@
 // Оптимизация обработки строк с sync.Pool
 package main
 
+import (
+	"fmt"
+	"sync"
+)
+
+const ULDelta byte = 32
+
+var bufferPool = sync.Pool{
+	New: func() any {
+		return make([]byte, 0, 64)
+	},
+}
+
+func ProcessString(s string) string {
+	buf := bufferPool.Get().([]byte)
+	buf = buf[:0]
+
+	for i := range len(s) {
+		char := s[i]
+
+		if char >= 'a' && char <= 'z' {
+			char -= ULDelta
+		}
+
+		buf = append(buf, char)
+	}
+
+	res := string(buf)
+	bufferPool.Put(buf)
+
+	return res
+}
+
 func main() {
 	examples := []string{
 		"hello, world!",

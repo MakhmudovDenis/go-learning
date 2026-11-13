@@ -3,15 +3,16 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"time"
+	"sync"
 )
 
-func fetchUrl(url string) error {
+func fetchURL(url string) error {
 	_, err := http.Get(url)
 	return err
 }
 
 func main() {
+	var wg sync.WaitGroup
 	urls := []string{
 		"https://www.lamoda.ru",
 		"https://www.yandex.ru",
@@ -19,9 +20,11 @@ func main() {
 		"https://www.google.ru",
 	}
 	for _, url := range urls {
+		wg.Add(1)
 		go func(url string) {
+			defer wg.Done()
 			fmt.Printf("Fetching %s....\n", url)
-			err := fetchUrl(url)
+			err := fetchURL(url)
 			if err != nil {
 				fmt.Printf("Error feaching %s: %v\n", url, err)
 				return
@@ -30,6 +33,6 @@ func main() {
 		}(url)
 	}
 	fmt.Println("All request launched!")
-	time.Sleep(400 * time.Millisecond)
+	wg.Wait()
 	fmt.Println("Program finished")
 }
