@@ -13,6 +13,9 @@ import (
 
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 const (
@@ -188,11 +191,243 @@ func (x *CreateResponse) GetId() int64 {
 	return 0
 }
 
+type GetRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRequest) Reset() {
+	*x = GetRequest{}
+	mi := &file_proto_userapi_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRequest) ProtoMessage() {}
+
+func (x *GetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_userapi_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRequest.ProtoReflect.Descriptor instead.
+func (*GetRequest) Descriptor() ([]byte, []int) {
+	return file_proto_userapi_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type GetResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	Role          Role                   `protobuf:"varint,4,opt,name=role,proto3,enum=userapi.Role" json:"role,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetResponse) Reset() {
+	*x = GetResponse{}
+	mi := &file_proto_userapi_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetResponse) ProtoMessage() {}
+
+func (x *GetResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_userapi_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetResponse.ProtoReflect.Descriptor instead.
+func (*GetResponse) Descriptor() ([]byte, []int) {
+	return file_proto_userapi_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetResponse) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *GetResponse) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *GetResponse) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+func (x *GetResponse) GetRole() Role {
+	if x != nil {
+		return x.Role
+	}
+	return Role_ROLE_USER
+}
+
+func (x *GetResponse) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *GetResponse) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return nil
+}
+
+type UpdateRequest struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Id            int64                   `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          *wrapperspb.StringValue `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Email         *wrapperspb.StringValue `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateRequest) Reset() {
+	*x = UpdateRequest{}
+	mi := &file_proto_userapi_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateRequest) ProtoMessage() {}
+
+func (x *UpdateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_userapi_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateRequest.ProtoReflect.Descriptor instead.
+func (*UpdateRequest) Descriptor() ([]byte, []int) {
+	return file_proto_userapi_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *UpdateRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *UpdateRequest) GetName() *wrapperspb.StringValue {
+	if x != nil {
+		return x.Name
+	}
+	return nil
+}
+
+func (x *UpdateRequest) GetEmail() *wrapperspb.StringValue {
+	if x != nil {
+		return x.Email
+	}
+	return nil
+}
+
+type DeleteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteRequest) Reset() {
+	*x = DeleteRequest{}
+	mi := &file_proto_userapi_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteRequest) ProtoMessage() {}
+
+func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_userapi_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteRequest.ProtoReflect.Descriptor instead.
+func (*DeleteRequest) Descriptor() ([]byte, []int) {
+	return file_proto_userapi_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *DeleteRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
 var File_proto_userapi_proto protoreflect.FileDescriptor
 
 const file_proto_userapi_proto_rawDesc = "" +
 	"\n" +
-	"\x13proto/userapi.proto\x12\auserapi\"\xa3\x01\n" +
+	"\x13proto/userapi.proto\x12\auserapi\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\x1a\x1bgoogle/protobuf/empty.proto\"\xa3\x01\n" +
 	"\rCreateRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
@@ -200,13 +435,34 @@ const file_proto_userapi_proto_rawDesc = "" +
 	"\x10password_confirm\x18\x04 \x01(\tR\x0fpasswordConfirm\x12!\n" +
 	"\x04role\x18\x05 \x01(\x0e2\r.userapi.RoleR\x04role\" \n" +
 	"\x0eCreateResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"\x1c\n" +
+	"\n" +
+	"GetRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"\xe0\x01\n" +
+	"\vGetResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
+	"\x05email\x18\x03 \x01(\tR\x05email\x12!\n" +
+	"\x04role\x18\x04 \x01(\x0e2\r.userapi.RoleR\x04role\x129\n" +
+	"\n" +
+	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x85\x01\n" +
+	"\rUpdateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x120\n" +
+	"\x04name\x18\x02 \x01(\v2\x1c.google.protobuf.StringValueR\x04name\x122\n" +
+	"\x05email\x18\x03 \x01(\v2\x1c.google.protobuf.StringValueR\x05email\"\x1f\n" +
+	"\rDeleteRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id*%\n" +
 	"\x04Role\x12\r\n" +
 	"\tROLE_USER\x10\x00\x12\x0e\n" +
 	"\n" +
-	"ROLE_ADMIN\x10\x012K\n" +
+	"ROLE_ADMIN\x10\x012\xf1\x01\n" +
 	"\x0eUserapiService\x129\n" +
-	"\x06Create\x12\x16.userapi.CreateRequest\x1a\x17.userapi.CreateResponseB\x1fZ\x1duserapi/gen/userapi;userapipbb\x06proto3"
+	"\x06Create\x12\x16.userapi.CreateRequest\x1a\x17.userapi.CreateResponse\x120\n" +
+	"\x03Get\x12\x13.userapi.GetRequest\x1a\x14.userapi.GetResponse\x128\n" +
+	"\x06Update\x12\x16.userapi.UpdateRequest\x1a\x16.google.protobuf.Empty\x128\n" +
+	"\x06Delete\x12\x16.userapi.DeleteRequest\x1a\x16.google.protobuf.EmptyB\x1fZ\x1duserapi/gen/userapi;userapipbb\x06proto3"
 
 var (
 	file_proto_userapi_proto_rawDescOnce sync.Once
@@ -222,22 +478,40 @@ func file_proto_userapi_proto_rawDescGZIP() []byte {
 
 var (
 	file_proto_userapi_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-	file_proto_userapi_proto_msgTypes  = make([]protoimpl.MessageInfo, 2)
+	file_proto_userapi_proto_msgTypes  = make([]protoimpl.MessageInfo, 6)
 	file_proto_userapi_proto_goTypes   = []any{
-		Role(0),                // 0: userapi.Role
-		(*CreateRequest)(nil),  // 1: userapi.CreateRequest
-		(*CreateResponse)(nil), // 2: userapi.CreateResponse
+		Role(0),                        // 0: userapi.Role
+		(*CreateRequest)(nil),          // 1: userapi.CreateRequest
+		(*CreateResponse)(nil),         // 2: userapi.CreateResponse
+		(*GetRequest)(nil),             // 3: userapi.GetRequest
+		(*GetResponse)(nil),            // 4: userapi.GetResponse
+		(*UpdateRequest)(nil),          // 5: userapi.UpdateRequest
+		(*DeleteRequest)(nil),          // 6: userapi.DeleteRequest
+		(*timestamppb.Timestamp)(nil),  // 7: google.protobuf.Timestamp
+		(*wrapperspb.StringValue)(nil), // 8: google.protobuf.StringValue
+		(*emptypb.Empty)(nil),          // 9: google.protobuf.Empty
 	}
 )
 var file_proto_userapi_proto_depIdxs = []int32{
-	0, // 0: userapi.CreateRequest.role:type_name -> userapi.Role
-	1, // 1: userapi.UserapiService.Create:input_type -> userapi.CreateRequest
-	2, // 2: userapi.UserapiService.Create:output_type -> userapi.CreateResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0,  // 0: userapi.CreateRequest.role:type_name -> userapi.Role
+	0,  // 1: userapi.GetResponse.role:type_name -> userapi.Role
+	7,  // 2: userapi.GetResponse.created_at:type_name -> google.protobuf.Timestamp
+	7,  // 3: userapi.GetResponse.updated_at:type_name -> google.protobuf.Timestamp
+	8,  // 4: userapi.UpdateRequest.name:type_name -> google.protobuf.StringValue
+	8,  // 5: userapi.UpdateRequest.email:type_name -> google.protobuf.StringValue
+	1,  // 6: userapi.UserapiService.Create:input_type -> userapi.CreateRequest
+	3,  // 7: userapi.UserapiService.Get:input_type -> userapi.GetRequest
+	5,  // 8: userapi.UserapiService.Update:input_type -> userapi.UpdateRequest
+	6,  // 9: userapi.UserapiService.Delete:input_type -> userapi.DeleteRequest
+	2,  // 10: userapi.UserapiService.Create:output_type -> userapi.CreateResponse
+	4,  // 11: userapi.UserapiService.Get:output_type -> userapi.GetResponse
+	9,  // 12: userapi.UserapiService.Update:output_type -> google.protobuf.Empty
+	9,  // 13: userapi.UserapiService.Delete:output_type -> google.protobuf.Empty
+	10, // [10:14] is the sub-list for method output_type
+	6,  // [6:10] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_proto_userapi_proto_init() }
@@ -251,7 +525,7 @@ func file_proto_userapi_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_userapi_proto_rawDesc), len(file_proto_userapi_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   2,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
