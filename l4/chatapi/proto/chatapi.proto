@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package chatapi;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "chatapi/gen/chatapi;chatapipb";
+
+service ChatService {
+  rpc Create(CreateReq) returns (CreateRes);
+  rpc Delete(DeleteReq) returns (google.protobuf.Empty);
+  rpc SendMessage(SendMessageReq) returns (google.protobuf.Empty);
+}
+
+message CreateReq {
+  repeated string usernames = 1;
+}
+
+message CreateRes {
+  int64 id = 1;
+}
+
+message DeleteReq {
+  int64 id = 1;
+}
+
+message SendMessageReq {
+  string from = 1;
+  string text = 2;
+  google.protobuf.Timestamp timestamp = 3;
+}
