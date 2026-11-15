@@ -15,14 +15,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type User struct {
-	Name  string
-	Email string
-}
-
 type UserService struct {
 	userapipb.UnimplementedUserapiServiceServer
-	db map[int64]User
 }
 
 func (s *UserService) Create(ctx context.Context, req *userapipb.CreateRequest) (*userapipb.CreateResponse, error) {
